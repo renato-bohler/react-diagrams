@@ -3,14 +3,22 @@ import { Action, ActionEvent, InputType } from '../core-actions/Action';
 
 export interface ZoomCanvasActionOptions {
 	inverseZoom?: boolean;
+	zoomStep?: number;
 }
 
 export class ZoomCanvasAction extends Action {
 	constructor(options: ZoomCanvasActionOptions = {}) {
+		options = {
+			zoomStep: 10,
+			...options
+		};
+
 		super({
 			type: InputType.MOUSE_WHEEL,
 			fire: (actionEvent: ActionEvent<WheelEvent>) => {
 				const { event } = actionEvent;
+				const { inverseZoom, zoomStep } = options;
+
 				// we can block layer rendering because we are only targeting the transforms
 				for (let layer of this.engine.getModel().getLayers()) {
 					layer.allowRepaint(false);
@@ -19,7 +27,9 @@ export class ZoomCanvasAction extends Action {
 				const model = this.engine.getModel();
 				event.stopPropagation();
 				const oldZoomFactor = this.engine.getModel().getZoomLevel() / 100;
-				let scrollDelta = options.inverseZoom ? -event.deltaY : event.deltaY;
+				const zoomDirection = Math.sign(event.deltaY);
+				let scrollDelta = (inverseZoom ? -zoomStep : zoomStep) * zoomDirection * 100;
+
 				//check if it is pinch gesture
 				if (event.ctrlKey && scrollDelta % 1 !== 0) {
 					/*
